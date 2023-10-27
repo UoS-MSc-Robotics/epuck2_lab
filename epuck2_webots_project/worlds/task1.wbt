@@ -1,0 +1,45 @@
+#VRML_SIM R2023b utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/floors/protos/RectangleArena.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/robots/gctronic/e-puck/protos/E-puck.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/solids/protos/SolidBox.proto"
+
+WorldInfo {
+}
+Viewpoint {
+  orientation -0.5099128412859851 0.5352413190437586 0.673428262460042 1.996867230183452
+  position 0.010034533563679261 -0.16460163431590624 0.934992946264712
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  floorSize 0.4 0.4
+}
+E-puck {
+  hidden position_0_0 1522.6203902415286
+  hidden position_0_1 3083.726928623597
+  hidden linearVelocity_0 -0.05997093545653231 0.11005276790412392 0.00018251831189856161
+  hidden angularVelocity_0 0.014683286473612106 -0.0066905822652532695 -0.015740793136555332
+  hidden rotation_1 0 1 0 2.089545904068712
+  hidden linearVelocity_1 -0.0593116976515912 0.11004559997818955 -6.843047180167006e-05
+  hidden angularVelocity_1 -5.50120912720156 -2.9880542227696028 -0.008212212475879032
+  hidden rotation_2 0 1 0 4.966128105599531
+  hidden linearVelocity_2 -0.060780300620715925 0.11005824652823575 -0.00010268051987404464
+  hidden angularVelocity_2 -5.50457042745414 -2.9819056175131706 -0.009999209695358302
+  translation 0.12708764115308543 -0.07995417430644956 -8.34641628586711e-05
+  rotation 0.0007207615858224292 0.0003497972344447469 0.999999679072264 2.070184194466986
+  controller "obs_avoidance"
+}
+SolidBox {
+  hidden linearVelocity_0 1.0537711628252322e-17 4.5719622147794955e-17 6.152362604776111e-17
+  hidden angularVelocity_0 -1.911678214990233e-15 1.449680961742031e-15 9.834889079004667e-17
+  translation -0.02921887838475841 -0.0397915221132579 0.034637422400000006
+  rotation -1.823725546046548e-14 6.379574671441773e-14 1 0.0010858698189891015
+  size 0.11 0.12 0.07
+  physics Physics {
+  }
+}
