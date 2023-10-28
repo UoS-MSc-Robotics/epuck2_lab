@@ -31,14 +31,25 @@
 
 #define TIME_STEP 64
 #define MAX_SPEED 6.27
-#define THRESHOLD 75.0
+#define P_THRESHOLD 75.0 // lower the value, higher the sensitivity
+#define T_THRESHOLD 100.0 // higher the value, higher the sensitivity
+
+int left_counter = 0;
+int right_counter = 0;
 
 
 WbDeviceTag left_motor;
 WbDeviceTag right_motor;
 WbDeviceTag proximity_sensor[8];
+WbDeviceTag tof_sensor;
+WbDeviceTag leds[8];
 
 float proximity_readings[8];
+float tof_readings;
+
+const char *leds_names[8] = {
+  "led0", "led1", "led2", "led3",
+  "led4", "led5", "led6", "led7"};
 
 const char *proximity_sensor_names[8] = {
   "ps0", "ps1", "ps2", "ps3",
@@ -78,10 +89,18 @@ void init() {
   wb_motor_set_velocity(left_motor, 0.0);
   wb_motor_set_velocity(right_motor, 0.0);
 
+  tof_sensor = wb_robot_get_device("tof");
+  wb_distance_sensor_enable(tof_sensor, TIME_STEP);
+
   for (int i = 0; i < 8; i++) {
     proximity_sensor[i] = wb_robot_get_device(proximity_sensor_names[i]);
     wb_distance_sensor_enable(proximity_sensor[i], TIME_STEP);
   }
+
+  for (int i = 0; i < 8; i++) {
+    leds[i] = wb_robot_get_device(leds_names[i]);
+  }
+
 }
 
 void move_forward(float speed) {
@@ -104,8 +123,104 @@ void get_sensor_values() {
     proximity_readings[i] = wb_distance_sensor_get_value(proximity_sensor[i]);
     // printf("Proximity Sensor %d: %f ", i, proximity_readings[i]);
   }
-  // printf("\n");
+  tof_readings = wb_distance_sensor_get_value(tof_sensor);
+  printf("TOF Sensor: %f\n", tof_readings);
 }
+
+
+
+void glow_leds() {
+  // glow led green if there are no obstacles, else glow red
+  if (tof_readings < T_THRESHOLD ||
+      proximity_readings[0] > P_THRESHOLD ||
+      proximity_readings[7] > P_THRESHOLD) {
+    // turn irl led1 red (epuck - led0)
+    wb_led_set(leds[0], 1);
+  } else {
+    // turn off
+    wb_led_set(leds[0], 0);
+  }
+
+  if (proximity_readings[1] > P_THRESHOLD) {
+    // turn irl led2 red (epuck - led1)
+    wb_led_set(leds[1], 0xff0000);
+  } else {
+    // turn off
+    wb_led_set(leds[1], 0x000000);
+  }
+
+  if (proximity_readings[2] > P_THRESHOLD) {
+    // turn irl led3 red (epuck - led2)
+    wb_led_set(leds[2], 1);
+  } else {
+    // turn off
+    wb_led_set(leds[2], 0);
+  }
+
+  if (proximity_readings[3] > P_THRESHOLD) {
+    // turn irl led4 red (epuck - led3)
+    wb_led_set(leds[3], 0xff0000);
+  } else {
+    // turn off
+    wb_led_set(leds[3], 0x000000);
+  }
+
+  if (proximity_readings[4] > P_THRESHOLD) {
+    // turn irl led6 red (epuck - led5)
+    wb_led_set(leds[5], 0xff0000);
+  } else {
+    // turn off
+    wb_led_set(leds[5], 0x000000);
+  }
+
+  if (proximity_readings[5] > P_THRESHOLD) {
+    // turn irl led7 red (epuck - led6)
+    wb_led_set(leds[6], 1);
+  }  else {
+    // turn off
+    wb_led_set(leds[6], 0);
+  }
+
+  if (proximity_readings[6] > P_THRESHOLD) {
+    // turn irl led8 red (epuck - led7)
+    wb_led_set(leds[7], 0xff0000);
+  } else {
+    // turn off
+    wb_led_set(leds[7], 0x000000);
+  }
+
+  if (tof_readings < T_THRESHOLD &&
+      proximity_readings[0] > P_THRESHOLD &&
+      proximity_readings[7] > P_THRESHOLD &&
+      proximity_readings[1] > P_THRESHOLD &&
+      proximity_readings[2] > P_THRESHOLD &&
+      proximity_readings[5] > P_THRESHOLD &&
+      proximity_readings[6] > P_THRESHOLD) {
+    // turn irl led5 green (epuck - led4)
+    wb_led_set(leds[1], 0x00ff00);
+    wb_led_set(leds[3], 0x00ff00);
+    wb_led_set(leds[5], 0x00ff00);
+    wb_led_set(leds[7], 0x00ff00);
+  } else {
+    wb_led_set(leds[1], 0x000000);
+    wb_led_set(leds[3], 0x000000);
+    wb_led_set(leds[5], 0x000000);
+    wb_led_set(leds[7], 0x000000);
+  }
+
+}
+
+void recovery() {
+  // if the robot is stuck, turn till tof sensor is clear
+  printf("Recovery\n");
+
+  while (tof_readings > T_THRESHOLD) {
+    turn_left(MAX_SPEED);
+    passive_wait(2.0);
+    get_sensor_values();
+  }
+}
+
 
 void obs_avoidance() {
   // left indices - 5, 6,
@@ -121,34 +236,35 @@ void obs_avoidance() {
     5, front is blocked, left side is not blocked, right side is not blocked - turn left
   */
 
-  if (proximity_readings[5] > THRESHOLD && proximity_readings[6] > THRESHOLD &&
-      proximity_readings[1] > THRESHOLD && proximity_readings[2] > THRESHOLD &&
-      proximity_readings[0] > THRESHOLD && proximity_readings[7] > THRESHOLD) {
+  if ((proximity_readings[5] > P_THRESHOLD || proximity_readings[6] > P_THRESHOLD) &&
+      (proximity_readings[1] > P_THRESHOLD || proximity_readings[2] > P_THRESHOLD) &&
+      (proximity_readings[0] > P_THRESHOLD || proximity_readings[7] > P_THRESHOLD) &&
+      tof_readings < T_THRESHOLD) {
     printf("U-Block\n");
+    turn_left(MAX_SPEED);
+    passive_wait(3.0); // turn for 1 second
 
-    // randomly choose left or right
-    if (rand() % 2) {
-      turn_left(MAX_SPEED);
-    } else {
-      turn_right(MAX_SPEED);
-    }
-
-    passive_wait(1.0); // turn for 1 second
-  } else if (proximity_readings[5] > THRESHOLD && proximity_readings[6] > THRESHOLD &&
-             proximity_readings[1] > THRESHOLD && proximity_readings[2] > THRESHOLD &&
-             proximity_readings[0] < THRESHOLD && proximity_readings[7] < THRESHOLD) {
+  } else if ((proximity_readings[5] > P_THRESHOLD || proximity_readings[6] > P_THRESHOLD) &&
+             (proximity_readings[1] > P_THRESHOLD || proximity_readings[2] > P_THRESHOLD)) {
     printf("LR-Block\n");
     move_forward(MAX_SPEED/2);
-  } else if (proximity_readings[5] > THRESHOLD && proximity_readings[6] > THRESHOLD) {
+
+  } else if (proximity_readings[5] > P_THRESHOLD || proximity_readings[6] > P_THRESHOLD) {
     printf("L-Block\n");
+    right_counter++;
     turn_right(MAX_SPEED);
     passive_wait(0.5);
-  } else if (proximity_readings[1] > THRESHOLD && proximity_readings[2] > THRESHOLD) {
+
+  } else if (proximity_readings[1] > P_THRESHOLD || proximity_readings[2] > P_THRESHOLD) {
     printf("R-Block\n");
+    left_counter++;
     turn_left(MAX_SPEED);
     passive_wait(0.5);
-  } else if (proximity_readings[0] > THRESHOLD && proximity_readings[7] > THRESHOLD) {
+
+  } else if (proximity_readings[0] > P_THRESHOLD && proximity_readings[7] > P_THRESHOLD) {
     printf("Headon\n");
+    left_counter = 0;
+    right_counter = 0;
 
     // randomly choose left or right
     if (rand() % 2) {
@@ -158,14 +274,27 @@ void obs_avoidance() {
     }
     passive_wait(1.0); // turn for 1 second
 
-  } else if (proximity_readings[0] > THRESHOLD) {
+  } else if (proximity_readings[0] > P_THRESHOLD) {
     printf("FR-Block\n");
+    left_counter++;
+    right_counter++;
+
     turn_left(MAX_SPEED);
-  } else if (proximity_readings[7] > THRESHOLD) {
+    passive_wait(0.1);
+
+  } else if (proximity_readings[7] > P_THRESHOLD) {
     printf("FL-Block\n");
+    left_counter++;
+    right_counter++;
+
     turn_right(MAX_SPEED);
+    passive_wait(0.1);
+
   } else {
     printf("no obstacles\n");
+    left_counter = 0;
+    right_counter = 0;
+
     move_forward(MAX_SPEED/2);
   }
 
@@ -176,7 +305,22 @@ int main(int argc, char **argv) {
   init();
 
   while (wb_robot_step(TIME_STEP) != -1) {
+    glow_leds();
+    // wb_led_set(wb_robot_get_device("led0"), 1); // led0 is epuck led1
+    // wb_led_set(wb_robot_get_device("led2"), 1); // led2 is epuck led3
+    // wb_led_set(wb_robot_get_device("led4"), 1); // led4 is epuck led5
+    // wb_led_set(wb_robot_get_device("led6"), 1); // led6 is epuck led7
+
+    // set rgb leds to green
+    // wb_led_set(wb_robot_get_device("led1"), 0x00ff00);
     get_sensor_values();
+
+    if (left_counter > 2 && right_counter > 2) {
+      recovery();
+      left_counter = 0;
+      right_counter = 0;
+    }
+
     obs_avoidance();
     passive_wait(0.1);
   }
