@@ -3,43 +3,49 @@
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackground.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/floors/protos/RectangleArena.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/factory/containers/protos/WoodenBox.proto"
 EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/robots/gctronic/e-puck/protos/E-puck.proto"
-EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/solids/protos/SolidBox.proto"
 
 WorldInfo {
+  info [
+    "The model of the e-puck 2 robot"
+  ]
+  title "e-puck simulation"
 }
 Viewpoint {
-  orientation -0.5099128412859851 0.5352413190437586 0.673428262460042 1.996867230183452
-  position 0.010034533563679261 -0.16460163431590624 0.934992946264712
+  orientation -0.5267471514911842 0.5556648876542895 0.6432526494497084 2.0394892514426015
+  position 0.013719925319762558 -0.09972176316216923 0.760033742697749
+  follow "e-puck2"
+  followType "None"
 }
 TexturedBackground {
 }
 TexturedBackgroundLight {
 }
 RectangleArena {
+  rotation 0 1 0 0
   floorSize 0.4 0.4
 }
-E-puck {
-  hidden position_0_0 1522.6203902415286
-  hidden position_0_1 3083.726928623597
-  hidden linearVelocity_0 -0.05997093545653231 0.11005276790412392 0.00018251831189856161
-  hidden angularVelocity_0 0.014683286473612106 -0.0066905822652532695 -0.015740793136555332
-  hidden rotation_1 0 1 0 2.089545904068712
-  hidden linearVelocity_1 -0.0593116976515912 0.11004559997818955 -6.843047180167006e-05
-  hidden angularVelocity_1 -5.50120912720156 -2.9880542227696028 -0.008212212475879032
-  hidden rotation_2 0 1 0 4.966128105599531
-  hidden linearVelocity_2 -0.060780300620715925 0.11005824652823575 -0.00010268051987404464
-  hidden angularVelocity_2 -5.50457042745414 -2.9819056175131706 -0.009999209695358302
-  translation 0.12708764115308543 -0.07995417430644956 -8.34641628586711e-05
-  rotation 0.0007207615858224292 0.0003497972344447469 0.999999679072264 2.070184194466986
-  controller "obs_avoidance"
+WoodenBox {
+  translation -0.085264 -0.110927 0.05
+  size 0.1 0.1 0.1
 }
-SolidBox {
-  hidden linearVelocity_0 1.0537711628252322e-17 4.5719622147794955e-17 6.152362604776111e-17
-  hidden angularVelocity_0 -1.911678214990233e-15 1.449680961742031e-15 9.834889079004667e-17
-  translation -0.02921887838475841 -0.0397915221132579 0.034637422400000006
-  rotation -1.823725546046548e-14 6.379574671441773e-14 1 0.0010858698189891015
-  size 0.11 0.12 0.07
-  physics Physics {
-  }
+E-puck {
+  hidden position_0_0 3.8902092641584485
+  hidden position_0_1 3.8884892689957624
+  hidden linearVelocity_0 3.703612575987769e-05 0.027393968053967502 4.044496829075499e-08
+  hidden angularVelocity_0 -0.0071979773038842254 1.1480570138955246e-05 -0.0008940155125622771
+  hidden rotation_1 0 0.9999999999999999 0 3.8902092641584485
+  hidden linearVelocity_1 3.714818537003623e-05 0.02745372316843374 3.7602805308444617e-10
+  hidden angularVelocity_1 -1.372696902633257 0.0018574104930131872 -0.0008952559670634837
+  hidden rotation_2 0 0.9999999999999999 0 3.8884892689957624
+  hidden linearVelocity_2 3.704484219917031e-05 0.027406192662570408 -4.3621040118570727e-10
+  hidden angularVelocity_2 -1.370298777161466 0.0018522406699745472 -0.0008946862173765287
+  translation 6.536892616993549e-05 0.07779940847007975 -5.594482486036105e-05
+  rotation -0.000578993663623468 0.000579558850604118 0.9999996644388819 1.569408682715058
+  name "e-puck2"
+  controller "obs_avoidance"
+  version "2"
+  camera_width 160
+  camera_height 120
 }

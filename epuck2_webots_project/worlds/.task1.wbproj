@@ -5,6 +5,6 @@ sceneTreePerspectives: 000000ff00000001000000030000001c000000c0000000fa010000000
 maximizedDockId: -1
 centralWidgetVisible: 1
 orthographicViewHeight: 1
-textFiles: 1 "../../../../../snap/webots/25/usr/share/webots/projects/robots/gctronic/e-puck/controllers/e-puck_avoid_obstacles/e-puck_avoid_obstacles.c" "controllers/obs_avoidance/obs_avoidance.c"
+textFiles: 1 "../../../../../snap/webots/25/usr/share/webots/projects/robots/gctronic/e-puck/controllers/e-puck/e-puck.c" "controllers/obs_avoidance/obs_avoidance.c"
 consoles: Console:All:All
-renderingDevicePerspectives: e-puck:camera;1;1;0;0
+renderingDevicePerspectives: e-puck2:camera;0;1;0;0

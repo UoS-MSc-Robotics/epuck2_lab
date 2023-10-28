@@ -21,6 +21,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -30,7 +31,7 @@
 
 #define TIME_STEP 64
 #define MAX_SPEED 6.27
-#define THRESHOLD 100.0
+#define THRESHOLD 75.0
 
 
 WbDeviceTag left_motor;
@@ -68,6 +69,8 @@ static void passive_wait(double sec) {
 void init() {
   wb_robot_init();
 
+  srand(time(NULL));
+
   left_motor = wb_robot_get_device("left wheel motor");
   right_motor = wb_robot_get_device("right wheel motor");
   wb_motor_set_position(left_motor, INFINITY);
@@ -99,22 +102,73 @@ void turn_right(float speed) {
 void get_sensor_values() {
   for (int i = 0; i < 8; i++) {
     proximity_readings[i] = wb_distance_sensor_get_value(proximity_sensor[i]);
-    printf("Proximity Sensor %d: %f ", i, proximity_readings[i]);
+    // printf("Proximity Sensor %d: %f ", i, proximity_readings[i]);
   }
-  printf("\n");
+  // printf("\n");
 }
 
 void obs_avoidance() {
-  // left indices - 4, 5, 6, 7
-  // right indices - 0, 1, 2, 3
+  // left indices - 5, 6,
+  // right indices - 1, 2,
+  // front indices - 0, 7
+  // back indices - 3, 4
 
-  // if front sensors detect obstacle, turn left or right
-  if (proximity_readings[0] > THRESHOLD || proximity_readings[7] > THRESHOLD) {
+  /*
+    1, left side is blocked, right side is blocked, front is blocked - turn left for 1 second
+    2, left side is blocked, right side is blocked, front is not blocked - move forward
+    3, left side is blocked, right side is not blocked - turn right
+    4, left side is not blocked, right side is blocked - turn left
+    5, front is blocked, left side is not blocked, right side is not blocked - turn left
+  */
+
+  if (proximity_readings[5] > THRESHOLD && proximity_readings[6] > THRESHOLD &&
+      proximity_readings[1] > THRESHOLD && proximity_readings[2] > THRESHOLD &&
+      proximity_readings[0] > THRESHOLD && proximity_readings[7] > THRESHOLD) {
+    printf("U-Block\n");
+
+    // randomly choose left or right
+    if (rand() % 2) {
+      turn_left(MAX_SPEED);
+    } else {
+      turn_right(MAX_SPEED);
+    }
+
+    passive_wait(1.0); // turn for 1 second
+  } else if (proximity_readings[5] > THRESHOLD && proximity_readings[6] > THRESHOLD &&
+             proximity_readings[1] > THRESHOLD && proximity_readings[2] > THRESHOLD &&
+             proximity_readings[0] < THRESHOLD && proximity_readings[7] < THRESHOLD) {
+    printf("LR-Block\n");
+    move_forward(MAX_SPEED/2);
+  } else if (proximity_readings[5] > THRESHOLD && proximity_readings[6] > THRESHOLD) {
+    printf("L-Block\n");
+    turn_right(MAX_SPEED);
+    passive_wait(0.5);
+  } else if (proximity_readings[1] > THRESHOLD && proximity_readings[2] > THRESHOLD) {
+    printf("R-Block\n");
     turn_left(MAX_SPEED);
     passive_wait(0.5);
+  } else if (proximity_readings[0] > THRESHOLD && proximity_readings[7] > THRESHOLD) {
+    printf("Headon\n");
+
+    // randomly choose left or right
+    if (rand() % 2) {
+      turn_left(MAX_SPEED);
+    } else {
+      turn_right(MAX_SPEED);
+    }
+    passive_wait(1.0); // turn for 1 second
+
+  } else if (proximity_readings[0] > THRESHOLD) {
+    printf("FR-Block\n");
+    turn_left(MAX_SPEED);
+  } else if (proximity_readings[7] > THRESHOLD) {
+    printf("FL-Block\n");
+    turn_right(MAX_SPEED);
   } else {
-    move_forward(MAX_SPEED);
+    printf("no obstacles\n");
+    move_forward(MAX_SPEED/2);
   }
+
 }
 
 
@@ -124,6 +178,7 @@ int main(int argc, char **argv) {
   while (wb_robot_step(TIME_STEP) != -1) {
     get_sensor_values();
     obs_avoidance();
+    passive_wait(0.1);
   }
 
   wb_robot_cleanup();
