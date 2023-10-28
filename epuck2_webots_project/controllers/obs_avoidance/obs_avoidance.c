@@ -118,13 +118,18 @@ void turn_right(float speed) {
   wb_motor_set_velocity(right_motor, -speed);
 }
 
+void stop() {
+  wb_motor_set_velocity(left_motor, 0);
+  wb_motor_set_velocity(right_motor, 0);
+}
+
 void get_sensor_values() {
   for (int i = 0; i < 8; i++) {
     proximity_readings[i] = wb_distance_sensor_get_value(proximity_sensor[i]);
     // printf("Proximity Sensor %d: %f ", i, proximity_readings[i]);
   }
   tof_readings = wb_distance_sensor_get_value(tof_sensor);
-  printf("TOF Sensor: %f\n", tof_readings);
+  // printf("TOF Sensor: %f\n", tof_readings);
 }
 
 
@@ -210,15 +215,32 @@ void glow_leds() {
 
 }
 
+
 void recovery() {
-  // if the robot is stuck, turn till tof sensor is clear
   printf("Recovery\n");
 
-  while (tof_readings > T_THRESHOLD) {
-    turn_left(MAX_SPEED);
-    passive_wait(2.0);
+  bool direction = rand() % 2;
+
+  passive_wait(1.0);
+
+  // turn till tof sensor is clear
+  while (tof_readings < 3*T_THRESHOLD ||
+         proximity_readings[0] > P_THRESHOLD ||
+         proximity_readings[7] > P_THRESHOLD) {
+
+    printf("tof: %f\n", tof_readings);
+
+    if (direction) {
+      turn_left(MAX_SPEED);
+    } else {
+      turn_right(MAX_SPEED);
+    }
+
+    passive_wait(0.2);
     get_sensor_values();
   }
+  stop();
+  passive_wait(0.5);
 }
 
 
@@ -241,22 +263,24 @@ void obs_avoidance() {
       (proximity_readings[0] > P_THRESHOLD || proximity_readings[7] > P_THRESHOLD) &&
       tof_readings < T_THRESHOLD) {
     printf("U-Block\n");
-    turn_left(MAX_SPEED);
-    passive_wait(3.0); // turn for 1 second
+    recovery();
 
   } else if ((proximity_readings[5] > P_THRESHOLD || proximity_readings[6] > P_THRESHOLD) &&
-             (proximity_readings[1] > P_THRESHOLD || proximity_readings[2] > P_THRESHOLD)) {
+      (proximity_readings[1] > P_THRESHOLD || proximity_readings[2] > P_THRESHOLD) &&
+      (proximity_readings[0] < P_THRESHOLD || proximity_readings[7] < P_THRESHOLD) &&
+      tof_readings > T_THRESHOLD) {
     printf("LR-Block\n");
     move_forward(MAX_SPEED/2);
+    passive_wait(0.1);
 
   } else if (proximity_readings[5] > P_THRESHOLD || proximity_readings[6] > P_THRESHOLD) {
-    printf("L-Block\n");
+    printf("plain L-Block\n");
     right_counter++;
     turn_right(MAX_SPEED);
     passive_wait(0.5);
 
   } else if (proximity_readings[1] > P_THRESHOLD || proximity_readings[2] > P_THRESHOLD) {
-    printf("R-Block\n");
+    printf("plain R-Block\n");
     left_counter++;
     turn_left(MAX_SPEED);
     passive_wait(0.5);
@@ -273,22 +297,6 @@ void obs_avoidance() {
       turn_right(MAX_SPEED);
     }
     passive_wait(1.0); // turn for 1 second
-
-  } else if (proximity_readings[0] > P_THRESHOLD) {
-    printf("FR-Block\n");
-    left_counter++;
-    right_counter++;
-
-    turn_left(MAX_SPEED);
-    passive_wait(0.1);
-
-  } else if (proximity_readings[7] > P_THRESHOLD) {
-    printf("FL-Block\n");
-    left_counter++;
-    right_counter++;
-
-    turn_right(MAX_SPEED);
-    passive_wait(0.1);
 
   } else {
     printf("no obstacles\n");
