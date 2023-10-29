@@ -27,6 +27,7 @@
 
 #include <webots/robot.h>
 #include <webots/motor.h>
+#include <webots/led.h>
 #include <webots/distance_sensor.h>
 
 #define TIME_STEP 64
