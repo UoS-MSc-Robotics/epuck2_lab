@@ -231,9 +231,9 @@ void recovery() {
     printf("tof: %f\n", tof_readings);
 
     if (direction) {
-      turn_left(MAX_SPEED);
+      turn_left(MAX_SPEED/2);
     } else {
-      turn_right(MAX_SPEED);
+      turn_right(MAX_SPEED/2);
     }
 
     passive_wait(0.2);
@@ -271,19 +271,16 @@ void obs_avoidance() {
       tof_readings > T_THRESHOLD) {
     printf("LR-Block\n");
     move_forward(MAX_SPEED/2);
-    passive_wait(0.1);
 
   } else if (proximity_readings[5] > P_THRESHOLD || proximity_readings[6] > P_THRESHOLD) {
     printf("plain L-Block\n");
     right_counter++;
-    turn_right(MAX_SPEED);
-    passive_wait(0.5);
+    turn_right(MAX_SPEED/2);
 
   } else if (proximity_readings[1] > P_THRESHOLD || proximity_readings[2] > P_THRESHOLD) {
     printf("plain R-Block\n");
     left_counter++;
-    turn_left(MAX_SPEED);
-    passive_wait(0.5);
+    turn_left(MAX_SPEED/2);
 
   } else if (proximity_readings[0] > P_THRESHOLD && proximity_readings[7] > P_THRESHOLD) {
     printf("Headon\n");
@@ -297,6 +294,20 @@ void obs_avoidance() {
       turn_right(MAX_SPEED);
     }
     passive_wait(1.0); // turn for 1 second
+
+  } else if (proximity_readings[0] > P_THRESHOLD) {
+    printf("FR-Block\n");
+    left_counter = 0;
+    right_counter = 0;
+
+    turn_left(MAX_SPEED/2);
+
+  } else if (proximity_readings[7] > P_THRESHOLD) {
+    printf("FL-Block\n");
+    left_counter = 0;
+    right_counter = 0;
+
+    turn_right(MAX_SPEED/2);
 
   } else {
     printf("no obstacles\n");
