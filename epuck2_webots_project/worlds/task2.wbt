@@ -1,0 +1,71 @@
+#VRML_SIM R2023b utf8
+
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackground.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/backgrounds/protos/TexturedBackgroundLight.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/objects/floors/protos/RectangleArena.proto"
+EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2023b/projects/robots/gctronic/e-puck/protos/E-puck.proto"
+
+WorldInfo {
+  info [
+    "The model of the e-puck 2 robot"
+  ]
+  title "e-puck simulation"
+}
+Viewpoint {
+  orientation -0.4187553116546134 0.44719777425056134 0.7903531740091843 1.8400295320638551
+  position 0.05179210369080031 -0.33870655102773795 0.6599497629597736
+  follow "e-puck2"
+  followType "None"
+}
+TexturedBackground {
+}
+TexturedBackgroundLight {
+}
+RectangleArena {
+  rotation 0 1 0 0
+  floorSize 2 2
+}
+E-puck {
+  hidden position_0_0 582.095685381198
+  hidden position_0_1 663.1102277072104
+  hidden linearVelocity_0 9.608280765172983e-05 4.5553856831792545e-05 5.801867567571628e-08
+  hidden angularVelocity_0 -0.003036890536654814 0.006405450374232046 5.7047951847215275e-12
+  hidden rotation_1 0 1 0 4.04263712067604
+  hidden linearVelocity_1 0.00012810935933390676 6.073797692746945e-05 -1.2897918300144387e-10
+  hidden angularVelocity_1 -0.0030368905439505586 0.0064054503888152405 -2.5221597342364707e-10
+  hidden rotation_2 0 -0.9999999999999999 0 2.90741485382581
+  hidden linearVelocity_2 0.0001281093596521468 6.073797831990316e-05 -1.2537002554477338e-10
+  hidden angularVelocity_2 -0.00303689054358152 0.0064054503889987395 2.636252269483103e-10
+  translation 0.08317937843191917 0.04956730371964081 -5.5932332706567015e-05
+  rotation 0.0008043929467433186 0.0001810268137864968 0.9999996600905823 -2.698870549780577
+  name "e-puck2"
+  controller "obj_tracker"
+  version "2"
+  camera_width 160
+  camera_height 120
+}
+Solid {
+  translation 1.8991352129498346e-07 -1.5400906721472332e-07 0.049607599999999995
+  rotation -2.585475487889758e-12 -1.6653209596393974e-11 -1 1.9472348789988105e-06
+  children [
+    Shape {
+      appearance PBRAppearance {
+        baseColor 1 0 0
+        metalness 0.3
+      }
+      geometry Cylinder {
+        height 0.1
+        radius 0.04
+      }
+    }
+  ]
+  boundingObject Cylinder {
+    height 0.1
+    radius 0.04
+  }
+  physics Physics {
+    mass 1
+  }
+  linearVelocity -1.9219536220264247e-17 6.461747943080773e-17 5.684341866981e-17
+  angularVelocity -1.6317096182099254e-15 -8.01613915022332e-17 -7.195725745309267e-17
+}

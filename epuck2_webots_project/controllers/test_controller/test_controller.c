@@ -48,7 +48,7 @@ double sensorValues[8] = {0.0, 0.0, 0.0, 0.0,
 double sensorWeight[8] = {0.0, 0.0, 0.0, 0.0,
                           0.0, 0.0, 0.0, 0.0};
 
-double proximityWeights[3] = {0.8, 0.6, 0.3}; // [ps0, ps1, ps2] && [ps7, ps6, ps5]
+double proximityWeights[3] = {0.8, 0.6, 0.6}; // [ps0, ps1, ps2] && [ps7, ps6, ps5]
 
 double leftSpeed = 0.0;
 double rightSpeed = 0.0;
