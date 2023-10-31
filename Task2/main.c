@@ -1,7 +1,7 @@
 //
 // MIT License
 //
-// Copyright (c) 2023 Shakir Abdul Rasheed
+// Copyright (c) 2023 Leander Stephen Desouza
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -48,13 +48,12 @@
 
 
 // Macros
-#define MAX_SPEED 500
-#define P_THRESHOLD 75
-#define T_THRESHOLD 300
-#define CRITICAL_THRESHOLD 150
-
-// Tuning
-double braitenberg_weights[3] = {0.3, 0.7, 1.0}; // sum should be less than 2
+#define MAX_SPEED 750
+#define P_THRESHOLD 100
+#define T_THRESHOLD 150
+#define BACKWARD_THRESHOLD 250
+#define FORWARD_THRESHOLD 150
+#define START_SELECTOR 0
 
 // Initialization
 double proximity_values[8];  // sensor readings
@@ -62,6 +61,9 @@ double proximity_weights[8]; // collection of ones and zeroes
 uint16_t tof_value = 0;      // tof sensor reading
 double left_speed = 0.0;
 double right_speed = 0.0;
+int left_dir_counter = 0;
+int right_dir_counter = 0;
+int8_t cam_error = 0;
 
 // Proximity sensors initialization
 messagebus_t bus;
@@ -94,6 +96,27 @@ void init() {
   // TOF Initialization
   VL53L0X_start();
 }
+
+void send_bt_values() {
+  // send calibrated proximity values through bluetooth
+  char prox_str[100];
+  int str_length;
+  str_length = sprintf(prox_str, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\n",
+    get_calibrated_prox(0),
+    get_calibrated_prox(1),
+    get_calibrated_prox(2),
+    get_calibrated_prox(3),
+    get_calibrated_prox(4),
+    get_calibrated_prox(5),
+    get_calibrated_prox(6),
+    get_calibrated_prox(7),
+    left_motor_get_desired_speed(),
+    right_motor_get_desired_speed(),
+    get_selector()
+  );
+  e_send_uart1_char(prox_str, str_length);    // obstacle avoidance
+}
+
 
 /*
  * Function to fill sensor values
@@ -129,30 +152,108 @@ void stop() {
 /*
  * Function to move the robot backwards
 */
-void backwards(float speed) {
+void move_backward(float speed) {
   left_motor_set_speed(-speed);
   right_motor_set_speed(-speed);
 }
 
+/*
+ * Function to move the robot forward
+*/
+void move_forward(float speed) {
+  left_motor_set_speed(speed);
+  right_motor_set_speed(speed);
+}
 
 /*
- * Function to run braitenberg algorithm
+ * Function to turn the robot left
 */
-void run_braitenberg() {
-  left_speed = 1.0 -
-    (proximity_weights[0] * braitenberg_weights[0] +
-     proximity_weights[1] * braitenberg_weights[1] +
-     proximity_weights[2] * braitenberg_weights[2]);
-  right_speed = 1.0 -
-    (proximity_weights[7] * braitenberg_weights[0] +
-     proximity_weights[6] * braitenberg_weights[1] +
-     proximity_weights[5] * braitenberg_weights[2]);
+void turn_left(float speed) {
+  left_motor_set_speed(-speed);
+  right_motor_set_speed(speed);
+}
 
-  left_speed *= MAX_SPEED;
-  right_speed *= MAX_SPEED;
+/*
+ * Function to turn the robot right
+*/
+void turn_right(float speed) {
+  left_motor_set_speed(speed);
+  right_motor_set_speed(-speed);
+}
 
-  left_motor_set_speed(right_speed);
-  right_motor_set_speed(left_speed);
+/*
+ * Function to get the last sensor input direction
+*/
+void get_last_sensor_input_direction() {
+  // set counter to 0
+  left_dir_counter = 0;
+  right_dir_counter = 0;
+
+  if (proximity_weights[4] || proximity_weights[5] ||
+    proximity_weights[6] || proximity_weights[7]) {
+    left_dir_counter++;
+  } else {
+    right_dir_counter++;
+  }
+}
+
+/*
+ * Function to glow LEDs
+*/
+void glow_leds() {
+  if((get_calibrated_prox(0) > P_THRESHOLD) || (get_calibrated_prox(7) > P_THRESHOLD)) {
+    e_set_led(0, 1);
+  } else {
+    e_set_led(0, 0);
+  }
+
+  if(get_calibrated_prox(1) > P_THRESHOLD) {
+    e_set_led(1, 1);
+  } else {
+    e_set_led(1, 0);
+  }
+
+  if(get_calibrated_prox(2) > P_THRESHOLD) {
+    e_set_led(2, 1);
+  } else {
+    e_set_led(2, 0);
+  }
+
+  if(get_calibrated_prox(3) > P_THRESHOLD) {
+    e_set_led(3, 1);
+  } else {
+    e_set_led(3, 0);
+  }
+
+  if((get_calibrated_prox(3) > P_THRESHOLD) || (get_calibrated_prox(4) > P_THRESHOLD)) {
+    e_set_led(4, 1);
+  } else {
+    e_set_led(4, 0);
+  }
+
+  if(get_calibrated_prox(4) > P_THRESHOLD) {
+    e_set_led(5, 1);
+  } else {
+    e_set_led(5, 0);
+  }
+
+  if(get_calibrated_prox(5) > P_THRESHOLD) {
+    e_set_led(6, 1);
+  } else {
+    e_set_led(6, 0);
+  }
+
+  if(get_calibrated_prox(6) > P_THRESHOLD) {
+    e_set_led(7, 1);
+  } else {
+    e_set_led(7, 0);
+  }
+}
+
+/*
+ * Function to send a single image through bluetooth
+*/
+void send_camera_feed_bt() {
 }
 
 
@@ -162,36 +263,76 @@ int main(void) {
 
   /* Infinite loop. */
   while (1) {
-    fill_sensor_values();
-    fill_proximity_weights();
 
-    if (proximity_values[0] > CRITICAL_THRESHOLD &&
-        proximity_values[7] > CRITICAL_THRESHOLD) {
-      // move backwards
-      backwards(MAX_SPEED/2);
+    if (get_selector() != START_SELECTOR) {
+      stop();
+      chThdSleepMilliseconds(100);
       continue;
     }
 
-    // if tof sensor is not detecting anything, rotate
-    if (tof_value > T_THRESHOLD &&
-      !(proximity_weights[5] || proximity_weights[6] || proximity_weights[7] ||
-        proximity_weights[0] || proximity_weights[1] || proximity_weights[2])) {
+    glow_leds();
+    send_bt_values();
+    fill_sensor_values();
+    fill_proximity_weights();
 
-      left_speed = -MAX_SPEED/2;
-      right_speed = MAX_SPEED/2;
+    if (proximity_values[0] > BACKWARD_THRESHOLD || proximity_values[7] > BACKWARD_THRESHOLD ||
+      proximity_values[1] > BACKWARD_THRESHOLD || proximity_values[6] > BACKWARD_THRESHOLD) {
 
-      left_motor_set_speed(left_speed);
-      right_motor_set_speed(right_speed);
+      get_last_sensor_input_direction();
+      printf("Move backwards\n");
+      move_backward(MAX_SPEED/2);
 
     } else {
 
-      if ((proximity_weights[0] && proximity_weights[7])) {
-        stop();
-        chThdSleepMilliseconds(100);
+        // if tof and no proximity, rotate left till object is detected
+        if (tof_value > T_THRESHOLD &&
+          !(proximity_weights[5] || proximity_weights[6] || proximity_weights[7] ||
+            proximity_weights[0] || proximity_weights[1] || proximity_weights[2])) {
+          printf("Lost connection\n");
 
-      } else {
-        run_braitenberg();
-      }
+          if (left_dir_counter > right_dir_counter) {
+            printf("Rotate left\n");
+            turn_left(MAX_SPEED/2);
+          } else {
+            printf("Rotate right\n");
+            turn_right(MAX_SPEED/2);
+          }
+
+        } else if (proximity_values[0] > FORWARD_THRESHOLD || proximity_values[7] > FORWARD_THRESHOLD && tof_value < T_THRESHOLD) {
+            get_last_sensor_input_direction();
+            printf("Reached\n");
+            stop();
+
+        } else if (proximity_weights[5] || proximity_weights[6]) {
+            get_last_sensor_input_direction();
+            // rotate left
+            printf("Rotate left\n");
+            turn_left(MAX_SPEED/2);
+
+        } else if (proximity_weights[1] || proximity_weights[2]) {
+            get_last_sensor_input_direction();
+            // rotate right
+            printf("Rotate right\n");
+            turn_right(MAX_SPEED/2);
+
+        } else if (proximity_weights[7] && !proximity_weights[0] && tof_value > T_THRESHOLD) {
+            get_last_sensor_input_direction();
+            // move left
+            printf("Move left\n");
+            turn_left(MAX_SPEED/2);
+
+        } else if (proximity_weights[0] && !proximity_weights[7] && tof_value > T_THRESHOLD) {
+            get_last_sensor_input_direction();
+            // move right
+            printf("Move right\n");
+            turn_right(MAX_SPEED/2);
+
+        } else {
+            get_last_sensor_input_direction();
+            // move forward
+            printf("Move forward\n");
+            move_forward(MAX_SPEED/2);
+        }
     }
 
     // set all sensor weights to 0
@@ -200,7 +341,7 @@ int main(void) {
     }
 
     // slow down update rate
-    chThdSleepMilliseconds(100);
+    chThdSleepMilliseconds(50);
   }
 }
 

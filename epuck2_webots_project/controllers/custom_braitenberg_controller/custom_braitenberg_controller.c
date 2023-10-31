@@ -37,7 +37,7 @@
 #define TIME_STEP 64
 
 // Tuning
-double braitenberg_weights[3] = {0.8, 0.6, 0.6}; // sum should be less than 2
+double braitenberg_weights[3] = {0.7, 0.5, 0.3}; // sum should be less than 2
 
 // Initialization
 double proximity_values[8];  // sensor readings
@@ -231,8 +231,8 @@ int main(int argc, char **argv) {
 
         printf("U Block\n");
 
-        left_speed = -MAX_SPEED;
-        right_speed = MAX_SPEED;
+        left_speed = -MAX_SPEED/2;
+        right_speed = MAX_SPEED/2;
 
         wb_motor_set_velocity(left_motor, left_speed);
         wb_motor_set_velocity(right_motor, right_speed);

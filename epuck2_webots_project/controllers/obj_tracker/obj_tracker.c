@@ -33,13 +33,12 @@
 
 // Macros
 #define MAX_SPEED 6.27/2
-#define P_THRESHOLD 75
+#define P_THRESHOLD 100
 #define T_THRESHOLD 300
-#define CRITICAL_THRESHOLD 150
+#define BACKWARD_THRESHOLD 250
+#define FORWARD_THRESHOLD 150
 #define TIME_STEP 64
 
-// Tuning
-double braitenberg_weights[3] = {0.3, 0.7, 1.0}; // sum should be less than 2
 
 // Initialization
 double proximity_values[8];  // sensor readings
@@ -47,6 +46,8 @@ double proximity_weights[8]; // collection of ones and zeroes
 double tof_value;            // tof sensor reading
 double left_speed = 0.0;
 double right_speed = 0.0;
+int left_dir_counter = 0;
+int right_dir_counter = 0;
 
 // Webots stuff
 const char *proximity_sensor_names[8] = {
@@ -112,8 +113,13 @@ void get_sensor_values() {
   for (int i = 0; i < 8; i++) {
     proximity_values[i] = wb_distance_sensor_get_value(proximity_sensor[i]);
   }
+
+  printf("proximity: %f %f %f %f %f %f %f %f\n",
+    proximity_values[0], proximity_values[1], proximity_values[2], proximity_values[3],
+    proximity_values[4], proximity_values[5], proximity_values[6], proximity_values[7]);
+
   tof_value = wb_distance_sensor_get_value(tof_sensor);
-  printf("tof: %f\n", tof_value);
+  // printf("tof: %f\n", tof_value);
 }
 
 /*
@@ -127,10 +133,9 @@ void fill_proximity_weights() {
       proximity_weights[i] = 0.0;
     }
   }
-  // printf("Proximity Weights: %f %f %f %f %f %f %f %f\n",
-  //        proximity_weights[0], proximity_weights[1], proximity_weights[2],
-  //        proximity_weights[3], proximity_weights[4], proximity_weights[5],
-  //        proximity_weights[6], proximity_weights[7]);
+  // printf("proximity weights: %f %f %f %f %f %f %f %f\n",
+  //   proximity_weights[0], proximity_weights[1], proximity_weights[2], proximity_weights[3],
+  //   proximity_weights[4], proximity_weights[5], proximity_weights[6], proximity_weights[7]);
 }
 
 /*
@@ -144,33 +149,50 @@ void stop() {
 /*
  * Function to move the robot backwards
 */
-void backwards(float speed) {
+void move_backward(float speed) {
   wb_motor_set_velocity(left_motor, -speed);
   wb_motor_set_velocity(right_motor, -speed);
 }
 
 /*
- * Function to run braitenberg algorithm
+ * Function to move the robot forward
 */
-void run_braitenberg() {
-  printf("Braitenberg\n");
-  left_speed = 1.0 -
-    (proximity_weights[0] * braitenberg_weights[0] +
-     proximity_weights[1] * braitenberg_weights[1] +
-     proximity_weights[2] * braitenberg_weights[2]);
-  right_speed = 1.0 -
-    (proximity_weights[7] * braitenberg_weights[0] +
-     proximity_weights[6] * braitenberg_weights[1] +
-     proximity_weights[5] * braitenberg_weights[2]);
-
-  left_speed *= MAX_SPEED;
-  right_speed *= MAX_SPEED;
-
-  wb_motor_set_velocity(left_motor, right_speed);
-  wb_motor_set_velocity(right_motor, left_speed);
+void move_forward(float speed) {
+  wb_motor_set_velocity(left_motor, speed);
+  wb_motor_set_velocity(right_motor, speed);
 }
 
+/*
+ * Function to turn the robot left
+*/
+void turn_left(float speed) {
+  wb_motor_set_velocity(left_motor, -speed);
+  wb_motor_set_velocity(right_motor, speed);
+}
 
+/*
+ * Function to turn the robot right
+*/
+void turn_right(float speed) {
+  wb_motor_set_velocity(left_motor, speed);
+  wb_motor_set_velocity(right_motor, -speed);
+}
+
+/*
+ * Function to get the last sensor input direction
+*/
+void get_last_sensor_input_direction() {
+  // set counter to 0
+  left_dir_counter = 0;
+  right_dir_counter = 0;
+
+  if (proximity_weights[4] || proximity_weights[5] ||
+    proximity_weights[6] || proximity_weights[7]) {
+    left_dir_counter++;
+  } else {
+    right_dir_counter++;
+  }
+}
 
 int main(int argc, char **argv) {
   init();
@@ -180,44 +202,71 @@ int main(int argc, char **argv) {
     get_sensor_values();
     fill_proximity_weights();
 
+    if (proximity_values[0] > BACKWARD_THRESHOLD || proximity_values[7] > BACKWARD_THRESHOLD ||
+      proximity_values[1] > BACKWARD_THRESHOLD || proximity_values[6] > BACKWARD_THRESHOLD) {
 
-    if (proximity_values[0] > CRITICAL_THRESHOLD &&
-        proximity_values[7] > CRITICAL_THRESHOLD) {
+      get_last_sensor_input_direction();
       printf("Move backwards\n");
-
-      // move backwards
-      backwards(MAX_SPEED/2);
-      continue;
-    }
-
-    // if tof sensor is not detecting anything, rotate
-    if (tof_value > T_THRESHOLD &&
-      !(proximity_weights[5] || proximity_weights[6] || proximity_weights[7] ||
-        proximity_weights[0] || proximity_weights[1] || proximity_weights[2])) {
-      printf("Rotate left\n");
-
-      left_speed = -MAX_SPEED/2;
-      right_speed = MAX_SPEED/2;
-
-      wb_motor_set_velocity(left_motor, left_speed);
-      wb_motor_set_velocity(right_motor, right_speed);
+      move_backward(MAX_SPEED/2);
 
     } else {
 
-      if ((proximity_weights[0] && proximity_weights[7])) {
-        printf("Reached\n");
-        stop();
+        // if tof and no proximity, rotate left till object is detected
+        if (tof_value > T_THRESHOLD &&
+          !(proximity_weights[5] || proximity_weights[6] || proximity_weights[7] ||
+            proximity_weights[0] || proximity_weights[1] || proximity_weights[2])) {
+          printf("Lost connection\n");
 
-      } else {
-        run_braitenberg();
-      }
+          if (left_dir_counter > right_dir_counter) {
+            printf("Rotate left\n");
+            turn_left(MAX_SPEED/2);
+          } else {
+            printf("Rotate right\n");
+            turn_right(MAX_SPEED/2);
+          }
+
+        } else if (proximity_values[0] > FORWARD_THRESHOLD || proximity_values[7] > FORWARD_THRESHOLD && tof_value < T_THRESHOLD) {
+
+            get_last_sensor_input_direction();
+            printf("Reached\n");
+            stop();
+
+        } else if (proximity_weights[5] || proximity_weights[6]) {
+          get_last_sensor_input_direction();
+          // rotate left
+          printf("Rotate left\n");
+          turn_left(MAX_SPEED/2);
+
+        } else if (proximity_weights[1] || proximity_weights[2]) {
+          get_last_sensor_input_direction();
+          // rotate right
+          printf("Rotate right\n");
+          turn_right(MAX_SPEED/2);
+
+        } else if (proximity_weights[7] && !proximity_weights[0] && tof_value > T_THRESHOLD) {
+          get_last_sensor_input_direction();
+          // move left
+          printf("Move left\n");
+          turn_left(MAX_SPEED/2);
+
+        } else if (proximity_weights[0] && !proximity_weights[7] && tof_value > T_THRESHOLD) {
+          get_last_sensor_input_direction();
+          // move right
+          printf("Move right\n");
+          turn_right(MAX_SPEED/2);
+
+        } else {
+          get_last_sensor_input_direction();
+          // move forward
+          printf("Move forward\n");
+          move_forward(MAX_SPEED/2);
+        }
+
     }
-
     // set all sensor weights to 0
     for (int i = 0; i < 8; i++) {
       proximity_weights[i] = 0.0;
     }
-
     passive_wait(0.1);
 
   };
